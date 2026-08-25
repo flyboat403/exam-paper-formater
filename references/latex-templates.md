@@ -88,13 +88,18 @@
 \vspace{4pt}
 
 % === 得分表（与试卷信息同栏；列数 = 1 + 大题数 + 1总分） ===
-% 满宽：tabular*{\linewidth} + \extracolsep{\fill} 自动把列距撑满整行宽；
-% m{} 列 + \centering 使单元格内容【水平+垂直居中】，\arraystretch 加高行；
-% 大题数 >5 时再加 \footnotesize + 缩短字号，使表格适配所在段落宽度，不得超栏
+% **列宽必须用 \linewidth 比例，禁止固定 cm**（实测：固定宽表在多栏卷超栏，
+% 溢出被画到栏沟与邻栏、与邻栏题干文字交错，红线 13）：
+%   题号列/总分列 = 0.12\linewidth；每个大题列 = 0.70\linewidth/n − 2pt
+%   （n = 大题数，按实际改分母，\dimexpr 自动算）；
+% \tabcolsep=0 + \extracolsep{\fill} 自动均分剩余间隙，总宽恒不超栏；
+% m{} 列 + \centering 使单元格内容【水平+垂直居中】，\arraystretch 加高行。
+% 大题数 >6 时合并题号区间（两大题共一列），题号区间放第二行（\hline 分隔）
 \begin{center}
 \small
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}|>{\centering\arraybackslash}m{1.3cm}|>{\centering\arraybackslash}m{2.2cm}|>{\centering\arraybackslash}m{2.2cm}|>{\centering\arraybackslash}m{2.2cm}|>{\centering\arraybackslash}m{1.3cm}|}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}|>{\centering\arraybackslash}m{0.12\linewidth}|>{\centering\arraybackslash}m{\dimexpr0.70\linewidth/3-2pt\relax}|>{\centering\arraybackslash}m{\dimexpr0.70\linewidth/3-2pt\relax}|>{\centering\arraybackslash}m{\dimexpr0.70\linewidth/3-2pt\relax}|>{\centering\arraybackslash}m{0.12\linewidth}|}
 \hline
 题号 & 一 & 二 & 三 & 总分 \\
 \hline
@@ -161,7 +166,9 @@
    \usepackage{array}
    \newcolumntype{C}{>{\centering\arraybackslash}p{0.24\linewidth}}
    \newcommand{\optab}[4]{%
-     \begin{tabular*}{\linewidth}{@{}C C C C@{}}
+     \par\noindent%
+     \setlength{\tabcolsep}{0pt}%
+     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}C C C C@{}}
        A.~#1 & B.~#2 & C.~#3 & D.~#4 \\
      \end{tabular*}}
 
@@ -172,6 +179,18 @@
 
    2 栏卷嵌套 `multicols{4}` 一般可用；若编译出现 multicols 相关
    错误/错位，一律改用上面的 tabular 方案。
+   **`\optab` 的两个关键点（均为实测）**：
+   (a) **`\par\noindent` 必须保留**——选项表是宽 = \linewidth 的不可断行盒，
+   若与题干文本同段（源码里只空一行 ≠ 分段），TeX 断行器宁可让
+   「题干+选项」同一行 Overfull（超宽 = 题干宽度），也不换行产生
+   badness 10000 的欠行；多栏卷时该行溢出画进栏沟/邻栏（红线 13）。
+   `\par` 让选项真正另起一段：选项段独占一行、恰好满栏宽、零超宽。
+   题干行短会报 Underfull (badness 10000)，属正常现象，不必处理
+   （交付门槛只查 Overfull / Missing character）。
+   (b) **`\tabcolsep=0` + `\fill` 胶水必须保留**：默认 \tabcolsep 下
+   表宽 = 0.96\linewidth + 3×12pt，超 2/3 栏栏宽 5–8mm（实测）。
+   含公式的选项必须 `$…$` 包裹（\optab 参数槽是文本模式，
+   裸 `30^\circ` 会报 Missing $ inserted）。
 2. 题干末尾留 `（\quad）` 答题空位；选项末尾**不加**标点
 3. 填空题 `\underline{\hspace{…}}`（2–5cm），`itemsep=0pt`
 4. 解答题每题标分值 + `\vspace*{…}`（小学 2–3cm / 初中 4–5cm / 高中 5–7cm）

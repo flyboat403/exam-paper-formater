@@ -104,19 +104,24 @@ LaTeX 中写死具体数值（`tex_check.py` 会校验）：
 ```
 
 得分表（紧随试卷头，**位于同一栏**；列数 = 1（题号）+ 每个大题一列 +
-1（总分）），**必须覆盖全部题型**（解答题/实验题/作图题最容易漏）；
-大题数 >5 时压缩字号 / 合并小题号区间使其适配栏宽，不得超栏。
+1（总分）），**必须覆盖全部题型**（解答题/实验题/作图题最容易漏）。
+**列宽必须用 \linewidth 比例（禁止固定 cm）**：固定宽表在多栏卷会超栏，
+溢出被画到栏沟与邻栏、与邻栏题干文字交错（实测 11 列固定宽表超栏 89mm，
+见 SKILL.md 红线 13）；大题数 >6 时合并题号区间（两大题共一列）。
 - **列数约定：每个大题 1 列（不要给每个大题开 2 个子列），否则
   列数多、易触发 `! Extra alignment tab`**。题号范围可放在题号行下方
-  的第二行（用 `\cline`），并非独立列。
+  的第二行（`\hline` 分隔），并非独立列。
 - 结构（两行表头 + 一行得分）；单元格内容**水平+垂直居中**
-  （`m{}` 列 + `>{\centering\arraybackslash}`，加 `\renewcommand{\arraystretch}{1.5}` 增高）：
+  （`m{}` 列 + `>{\centering\arraybackslash}`，加 `\renewcommand{\arraystretch}{1.5}` 增高）；
+  `\tabcolsep=0` + `\fill` 胶水自动均分剩余间隙（比例列宽见左）：
 
 ```latex
+% 题号/总分列 = 0.12\linewidth；大题列 = 0.70\linewidth/n − 2pt（n = 大题数，改分母即可）
 \begin{center}
 \small
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}|>{\centering\arraybackslash}m{1.3cm}|>{\centering\arraybackslash}m{2.2cm}|>{\centering\arraybackslash}m{2.2cm}|>{\centering\arraybackslash}m{2.2cm}|>{\centering\arraybackslash}m{1.3cm}|}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}|>{\centering\arraybackslash}m{0.12\linewidth}|>{\centering\arraybackslash}m{\dimexpr0.70\linewidth/3-2pt\relax}|>{\centering\arraybackslash}m{\dimexpr0.70\linewidth/3-2pt\relax}|>{\centering\arraybackslash}m{\dimexpr0.70\linewidth/3-2pt\relax}|>{\centering\arraybackslash}m{0.12\linewidth}|}
 \hline
 题号 & 一（选择） & 二（填空） & 三（解答） & 总分 \\
 \hline

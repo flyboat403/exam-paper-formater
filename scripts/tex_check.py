@@ -333,22 +333,93 @@ class TexChecker:
         if not sections:
             return
         header = None
-        for i, line in enumerate(self.raw_lines):
-            if "题号" in line and "总分" in line:
+        for i, line in enumerate(self.lines):
+            if "题号" in line and "总分" in line and "&" in line:
                 header = i
                 break
             low = line.lower()
-            if "total" in low and re.search(r"\b(part|section)\b", low):
+            if "total" in low and re.search(r"\b(part|section)\b", low) \
+                    and "&" in line:
                 header = i
                 break
         if header is None:
             return
-        cols = self.raw_lines[header].count("&") + 1
+        cols = self.lines[header].count("&") + 1
         if cols - 2 < len(sections):
             self.add(header + 1, "ERROR",
                      f"score table has {cols - 2} question-type column(s) "
                      f"but the body has {len(sections)} 大题 — "
                      "a question type is missing from the score table")
+
+    def _balanced(self, i):
+        """i points at '{'; return (content, pos_after_closing_brace)."""
+        depth = 0
+        j = i
+        n = len(self.code_text)
+        while j < n:
+            ch = self.code_text[j]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return self.code_text[i + 1:j], j + 1
+            j += 1
+        return None, i
+
+    def check_table_width(self):
+        """tabular 固定 cm/mm/pt 列宽总和不得超栏宽（red line 13）。
+
+        实测教训：11 列固定 m{} 宽得分表（22.4cm）超 A3 横 2 栏栏宽
+        （183mm）89mm，溢出被画到栏沟与邻栏、与邻栏题干文字交错。
+        比例列宽（\\linewidth / \\dimexpr）自动适配，不检查。
+        仅在同时给出 --paper 与 --cols 时启用。
+        """
+        if not self.paper or self.cols is None:
+            return
+        left = 32.0 if self.seal == "on" else 18.0
+        right = 12.0
+        sep = {1: 0.0, 2: 10.0, 3: 8.0}[self.cols]
+        col_w = (self.paper[0] - left - right - (self.cols - 1) * sep) / self.cols
+        scale = {"mm": 1.0, "cm": 10.0, "pt": 25.4 / 72.0}
+        for m in re.finditer(r"\\begin\{tabular\*?\}", self.code_text):
+            name = m.group(0)
+            pos = m.end()
+            n = len(self.code_text)
+            while pos < n and self.code_text[pos] in " \t\n":
+                pos += 1
+            if pos < n and self.code_text[pos] == "[":
+                pos = self.code_text.find("]", pos) + 1
+                while pos < n and self.code_text[pos] in " \t\n":
+                    pos += 1
+            if pos >= n or self.code_text[pos] != "{":
+                continue
+            g1, pos2 = self._balanced(pos)
+            spec = g1
+            if name.endswith("*}"):  # tabular*: first group is width, second is spec
+                while pos2 < n and self.code_text[pos2] in " \t\n":
+                    pos2 += 1
+                if pos2 < n and self.code_text[pos2] == "{":
+                    spec, _ = self._balanced(pos2)
+            if not spec:
+                continue
+            total_mm = 0.0
+            has_fixed = False
+            for dm in re.finditer(r"(?<![A-Za-z])[mp]\{([^{}]+)\}", spec):
+                mm = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(mm|cm|pt)",
+                                  dm.group(1).strip())
+                if mm:
+                    has_fixed = True
+                    total_mm += float(mm.group(1)) * scale[mm.group(2)]
+            if has_fixed and total_mm > col_w - 1.0:
+                line = self._line_at(m.start())
+                self.add(line, "ERROR",
+                         f"tabular fixed column widths sum {total_mm:.0f}mm "
+                         f"exceeds column width {col_w:.0f}mm — overflow is "
+                         "drawn over the gutter into the adjacent column in "
+                         "multi-column papers (red line 13); use "
+                         "\\linewidth-proportional column widths "
+                         "(latex-templates.md §1)")
 
     def run_all(self):
         self.check_documentclass()
@@ -366,6 +437,7 @@ class TexChecker:
         self.check_orphan_figures()
         self.check_included_images()
         self.check_score_table()
+        self.check_table_width()
         return self.issues
 
     def report(self):
