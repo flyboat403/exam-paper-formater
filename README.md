@@ -33,7 +33,7 @@
 ## 目录结构
 
 ```
-exam-paper-formater/
+.（本仓库根目录 = 技能根目录）
 ├── SKILL.md              # 核心原则 + 十步流程 + 12 条质量红线
 ├── README.md
 ├── evals/
