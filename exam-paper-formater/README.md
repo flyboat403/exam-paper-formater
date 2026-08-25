@@ -3,6 +3,13 @@
 把用户提供的题目内容（docx / html / txt / md / 粘贴文本）排版为
 **可直接印刷的 PDF 试卷**（含独立答案卷与答题卡）。只排版，不出题。
 
+> **来源声明**：本技能派生自两个 MIT 许可的上游项目——
+> [elangan1997-cmyk/exam-prompt-skill](https://github.com/elangan1997-cmyk/exam-prompt-skill/)
+> 与 [haitanghuaweimianTom/exam-paper-skill](https://github.com/haitanghuaweimianTom/exam-paper-skill/)，
+> 在其基础上按"试卷排版"范围提取、整合并做了大量自定义扩展（正度8开纸张预设、
+> 答题卡输出、12 条质量红线、双通道视觉核验、ctex 实测陷阱等，详见下文
+> 「上游与许可」一节）。完整版权与许可说明见该节。
+
 ## 核心能力
 
 - **版式三选**：纸张大小（A4 / A3 / B5 / A5 / **正度8开 260×370mm** / 自定义 mm）、
@@ -95,15 +102,50 @@ miktexsetup_standalone --quiet --local-package-repository=E:\tools\miktex-pkgs ^
 B5 1 栏化学 / A4 2 栏英文物理 / A3 2 栏计算机模拟卷含答题卡），
 输入卷均为 `.md`（位于 `evals/inputs/`）。
 
-## 上游与许可
+## 上游与许可（版权说明）
 
-本 skill 整合自两个 MIT 许可项目（已按"试卷排版"范围提取）：
+**本技能不是原创项目，而是以下两个 MIT 许可上游技能的派生作品**，
+已按"试卷排版"范围从中提取、整合，并加入了大量自定义内容。
+为遵守版权规范，在此逐项注明来源：
 
-- [haitanghuaweimianTom/exam-paper-skill](https://github.com/haitanghuaweimianTom/exam-paper-skill/)
-  —— 公式/排版规范、matplotlib 绘图工具（`scripts/diagram_tools.py` 改编自其
-  `tools/diagram_tools.py`，扩展了 Windows 字体列表）、质量检查思路
-  （`scripts/tex_check.py` 改编自其 `tools/quality_check.py` 并扩展为 .tex 检查）
-- [elangan1997-cmyk/exam-prompt-skill](https://github.com/elangan1997-cmyk/exam-prompt-skill/)
-  —— A3/密封线/得分表/题型格式规范、TikZ 12 项自检清单、出卷自检工作流
+### 上游 1：[elangan1997-cmyk/exam-prompt-skill](https://github.com/elangan1997-cmyk/exam-prompt-skill/)
 
-本 skill 其余内容为原创整合。许可：MIT。
+取自该项目的部分：
+
+- A3 学校印刷版式规范（横向 3 栏 ≈120mm 栏宽、密封线占 2.2cm 左边距）
+- 密封线视觉规范（虚线 + 小圆圈 + 竖排「密封线内不得答题」+ 第 1 页个人信息）
+- 得分表结构约定（列数 = 1 + 大题数 + 1 总分、逐题分值加总 = 满分）
+- 题型排版格式规范（选择题选项分栏、填空横线、解答题分值标注与答题空白）
+- TikZ 理科绘图 12 项自检清单（角度弧线方向、直角标记、标签不重叠等）
+- 出卷/排版自检工作流的思路
+
+### 上游 2：[haitanghuaweimianTom/exam-paper-skill](https://github.com/haitanghuaweimianTom/exam-paper-skill/)
+
+取自该项目的部分：
+
+- 公式/化学式排版规范（`H$_2$O`、`Cu$^{2+}$`、`\xrightarrow{点燃}` 等写法与转义陷阱）
+- matplotlib 绘图工具：`scripts/diagram_tools.py` **改编自其
+  `tools/diagram_tools.py`**（本仓库扩展了 Windows CJK 字体列表）
+- 质量检查思路：`scripts/tex_check.py` **改编自其 `tools/quality_check.py`**
+  （由 markdown 检查扩展为 .tex 参数化检查：纸张/栏数/密封线/配图完整性/
+  环境配平/公式闭合/控制字符/得分表覆盖）
+
+### 本项目的自定义内容（原创部分）
+
+在上述基础上，以下内容为本项目原创整合与扩展：
+
+- 十步流程编排与「核心原则」三个 trade-off 框架、质量红线 12 条（每条附 why）
+- 正度8开（260×370mm）纸张预设、短边卷 `\vspace*{\fill}` 陷阱（实测 44pt Overfull）
+- 答题卡作为第 3 个输出产物（固定 A4 纵向）
+- 输入白名单机制（docx/html/txt/md，非白名单拒绝 + 转换提示，禁止降级解析）
+- 双通道视觉核验（图像目检 / 纯文本模型 pypdfium2 文本提取）
+- `references/intake.md` 采集三级处理（识别→确认→提问）
+- ctex/xeCJK 实测陷阱三条（带圈数字无字形、正文 `\rightarrow` 破坏字体切换、
+  正文裸 `$` 破坏数学配对）
+- 5 个 `.md` 测试卷（`evals/inputs/`）与断言
+
+### 许可
+
+两个上游项目均为 **MIT License**，本派生作品同样以 **MIT** 发布。
+按 MIT 条款，保留上述来源与版权说明即为合规使用；
+上游作者的版权主张不受本派生作品影响。
