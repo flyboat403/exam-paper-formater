@@ -260,12 +260,19 @@ class TexChecker:
                     break
 
     def check_figure_completeness(self):
-        """Every question that mentions a figure must be followed by one."""
+        """Every question that mentions a figure must be followed by one.
+
+        Quoted spans (“…”/“...”/「…」) are stripped before matching: a
+        figure keyword inside quotes is a quoted name (e.g. the chart
+        title a student sets — “某高校师资情况统计图”), not a reference
+        to a figure that belongs in the paper.
+        """
         keywords = FIG_KEYWORDS_EN if self.lang == "en" else FIG_KEYWORDS_ZH
         lines = self.lines
         n = len(lines)
         for i, line in enumerate(lines):
-            hit = next((k for k in keywords if k.lower() in line.lower()), None)
+            unquoted = re.sub(r"“[^”]*”|\"[^\"]*\"|「[^」]*」", "", line)
+            hit = next((k for k in keywords if k.lower() in unquoted.lower()), None)
             if not hit:
                 continue
             # search for a figure from this line to the next \item / \section
