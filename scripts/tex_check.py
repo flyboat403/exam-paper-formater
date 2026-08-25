@@ -275,6 +275,16 @@ class TexChecker:
             hit = next((k for k in keywords if k.lower() in unquoted.lower()), None)
             if not hit:
                 continue
+            # Creation instructions (绘制/生成/画出… + 图名词) need no embedded
+            # figure — the student produces it (e.g. an on-computer task
+            # “根据数据绘制统计图”) — unless the line also references an
+            # existing figure (如图/下图/图1 …), which must still exist.
+            if self.lang != "en" and re.search(
+                    r"绘制|生成|画出|画一|作出|描出|制作|补全|补出", unquoted) \
+                    and not re.search(
+                        r"如图|如下图|下图|上图|图中|图\s*\d|图\s*[一二三四五六七八九十]",
+                        unquoted):
+                continue
             # search for a figure from this line to the next \item / \section
             j = i
             found = False
@@ -334,8 +344,10 @@ class TexChecker:
         if body_start < 0:
             return
         body = self.code_text[body_start:]
+        # 大题 = \section*（单级卷）或 \subsection*（两级「部分/大题」卷，
+        # 部分行用 \section* 且以「第」开头，不会被误计）。
         sections = re.findall(
-            r"^\s*\\section\*?\{\s*[一二三四五六七八九十\d]{1,3}\s*[、\.．]",
+            r"^\s*\\(?:section|subsection)\*?\{\s*[一二三四五六七八九十\d]{1,3}\s*[、\.．]",
             body, re.M)
         if not sections:
             return

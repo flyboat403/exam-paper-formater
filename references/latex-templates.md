@@ -94,7 +94,8 @@
 %   （n = 大题数，按实际改分母，\dimexpr 自动算）；
 % \tabcolsep=0 + \extracolsep{\fill} 自动均分剩余间隙，总宽恒不超栏；
 % m{} 列 + \centering 使单元格内容【水平+垂直居中】，\arraystretch 加高行。
-% 大题数 >6 时合并题号区间（两大题共一列），题号区间放第二行（\hline 分隔）
+% 题号区间放第二行（\hline 分隔）；比例列宽下大题数多少都放得下
+% （实测 183mm 栏宽 11 列 OK），仅题号放不下的极多列情形才合并两大题共一列
 \begin{center}
 \small
 \renewcommand{\arraystretch}{1.5}
@@ -110,6 +111,15 @@
 \end{tabular*}
 \end{center}
 \vspace{4pt}
+
+% === 两级结构（可选：有「第一部分/第二部分」的卷，职教高考/会考常见） ===
+% 部分行用 \section*（导言区把 section/format 提为 \LARGE\bfseries\raggedright，
+% 并加 \ctexset{subsection/format = {\large\bfseries\raggedright}}），
+% 大题改用 \subsection*：层级 标题 \LARGE > 部分 \LARGE > 大题 \large。
+%   \section*{第一部分　专业知识（应知）}
+%   \subsection*{一、单项选择题（…）}
+% checker 得分表覆盖检查同时认 \section* / \subsection* 大题；
+% 部分行以「第」开头，不会被误计为大题。
 
 \section*{一、选择题（本大题共X小题，每小题X分，共X分）}
 \begin{enumerate}[leftmargin=*,label=\arabic*.,itemsep=0pt,topsep=1pt]

@@ -107,4 +107,5 @@ ABCD 选项**禁止**写在同一行，也**禁止与题干同一行**。必须*
 | `\text{已知}x=1` | — | 数学模式内中文必须 `\text{…}` |
 | ① ② ③（带圈数字 U+2460–2469） | (1) (2) (3) | **实测**：ctex 的 CJK 字体范围不含 Enclosed Alphanumerics 区块，① 在 lmroman 西文字体中无字形 → Missing character（答案卷实测） |
 | 正文流程箭头 `\rightarrow` | 全角 `→`（文本字符）或 `——` | **实测**：`\rightarrow` 等 math mode 符号命令在 CJK 邻接处会破坏 xeCJK 字体切换，后续中文落入西文字体满屏 Missing character；正文流程一律用全角 `→`（U+2192 作为 CJK 文本字符正常），数学推导公式里的 `\rightarrow` 不受影响 |
-| 描述 Excel 公式时的 `$`（绝对引用） | 文字描述"绝对引用/列首行加锁" | **实测**：正文里裸 `$` 破坏 tex 数学模式配对（`Missing $ inserted` 连锁报错）；`\texttt{$}`/`\verb|$|` 在 ctex 下仍被 tex_check 数学扫描计数。**正文不要出现 `$` 字符**，Excel 绝对引用用文字说明 |
+| 描述 Excel 公式时的 `$`（绝对引用） | 文字描述"绝对引用/列首行加锁" | **实测**：正文里裸 `$` 破坏 tex 数学模式配对（`Missing $ inserted` 连锁报错）；`\texttt{$}`/`\verb|$|` 在 ctex 下仍被 tex_check 数学扫描计数。**正文不要出现 `$` 字符**，Excel 绝对引用用文字说明（例外：题目原文含 Excel 公式时，用 `\$` 转义忠实保留） |
+| SQL/代码内 ASCII 引号（性别='男'） | 保留原样 | 代码忠实优先；checker 的 straight-quote WARNING 可保留（非交付门槛），勿为消警告改题目内容 |

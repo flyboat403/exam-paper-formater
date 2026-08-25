@@ -61,6 +61,8 @@ description: 试卷排版 — 把用户提供的题目内容排版成可直接�
 python "$SKILL_ROOT/scripts/check_env.py"
 ```
 
+- **Windows GBK 控制台**：运行任何 python 脚本（tex_check.py / pypdfium2
+  视觉核验等）前先设 `$env:PYTHONIOENCODING="utf-8"`，否则中文输出乱码
 - `pipeline: latex` → 走主管线（第 2–9 步）
 - `pipeline: html-fallback` → 告知用户本机无 LaTeX，改用
   `references/html-fallback.md`（结构/规则与主管线同构，用 HTML+KaTeX+Edge 无头打印）
