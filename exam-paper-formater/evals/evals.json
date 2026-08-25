@@ -1,0 +1,120 @@
+{
+  "skill_name": "exam-paper-formater",
+  "evals": [
+    {
+      "id": "eval-1",
+      "name": "a4-2col-math",
+      "prompt": "帮我把这份卷子排成 PDF：A4 纵向、2 栏、无密封线，要答案卷。题目在 inputs/eval1_数学期中卷.md",
+      "input_file": "inputs/eval1_数学期中卷.md",
+      "params": {
+        "paper": "210x297",
+        "cols": 2,
+        "seal": "off",
+        "lang": "zh"
+      },
+      "assertions": [
+        "geometry paperwidth=210mm,paperheight=297mm",
+        "正文级 multicols{2}",
+        "无密封线",
+        "第4题函数图像题有配图（diagram_tools 或 TikZ）",
+        "第21题三角形题有 TikZ 几何图（直角标记/角度正确）",
+        "统计图题有条形图",
+        "选择题选项 multicols{4} 分栏，不挤一行",
+        "满分 120 分，得分表覆盖三大题型，分值加总=120",
+        "tex_check.py --paper 210x297 --cols 2 --seal off --lang zh 零 ERROR",
+        "xelatex 编译零错误，PDF 首页视觉核验通过",
+        "答案卷独立文件，含选择答案速查表与解答过程"
+      ]
+    },
+    {
+      "id": "eval-2",
+      "name": "a3-3col-physics-seal",
+      "prompt": "这份物理期末卷按学校印刷标准排版：A3 横向、3 栏、要密封线，满分 100 分 100 分钟。题目在 inputs/eval2_物理期末卷.md",
+      "input_file": "inputs/eval2_物理期末卷.md",
+      "params": {
+        "paper": "420x297",
+        "cols": 3,
+        "seal": "on",
+        "lang": "zh"
+      },
+      "assertions": [
+        "geometry paperwidth=420mm,paperheight=297mm（A3 横向=宽边 420）",
+        "正文级 multicols{3}",
+        "第 1 页密封线（虚线+圆圈+竖排文字+学校/班级/姓名/学号），第 2 页无个人信息",
+        "电路图 TikZ 图（元件符号正确、电流方向标注）",
+        "受力图（diagram_tools force_diagram 或 TikZ）",
+        "光路图（实线光线带箭头、虚线法线、角度弧线）",
+        "实验装置图（探究欧姆定律/电功率装置）",
+        "得分表覆盖 5 大题，分值加总=100",
+        "tex_check.py --paper 420x297 --cols 3 --seal on --lang zh 零 ERROR",
+        "xelatex 编译零错误"
+      ]
+    },
+    {
+      "id": "eval-3",
+      "name": "b5-1col-chem",
+      "prompt": "把这份化学酸碱盐单元测试排成 PDF：B5 纸、纵向、1 栏、无密封线。题目在 inputs/eval3_化学单元测试.md",
+      "input_file": "inputs/eval3_化学单元测试.md",
+      "params": {
+        "paper": "182x257",
+        "cols": 1,
+        "seal": "off",
+        "lang": "zh"
+      },
+      "assertions": [
+        "geometry paperwidth=182mm,paperheight=257mm",
+        "正文无 multicols（1 栏）",
+        "化学式上下标正确：H2O→H$_2$O、CO3 2-→CO$_3^{2-}$（无 Cu$^2$$^+$ 式分裂写法）",
+        "化学方程式用 \\xrightarrow 条件（点燃/Δ/通电），气体↑沉淀↓",
+        "实验装置图 1 张（pH 测定或中和滴定装置，TikZ）",
+        "tex_check.py --paper 182x257 --cols 1 --seal off --lang zh 零 ERROR",
+        "xelatex 编译零错误"
+      ]
+    },
+    {
+      "id": "eval-4",
+      "name": "a4-2col-english-physics",
+      "prompt": "Typeset this English physics midterm into a PDF: A4 portrait, 2 columns, no seal line. Questions in inputs/eval4_physics_midterm.md",
+      "input_file": "inputs/eval4_physics_midterm.md",
+      "params": {
+        "paper": "210x297",
+        "cols": 2,
+        "seal": "off",
+        "lang": "en"
+      },
+      "assertions": [
+        "\\documentclass article（非 ctex）+ mathptmx",
+        "geometry paperwidth=210mm,paperheight=297mm",
+        "正文级 multicols{2}",
+        "无密封线",
+        "电路图 TikZ 图",
+        "公式单位规范：m/s$^2$、Ω、J",
+        "tex_check.py --paper 210x297 --cols 2 --seal off --lang en 零 ERROR",
+        "xelatex 编译零错误（无 CJK 缺字）"
+      ]
+    },
+    {
+      "id": "eval-5",
+      "name": "a3-2col-computer-sc",
+      "prompt": "排版这份四川省职教高考计算机模拟卷：A3 横向、2 栏、密封线、要答案卷和答题卡。题目在 inputs/eval5_计算机模拟卷.md",
+      "input_file": "inputs/eval5_计算机模拟卷.md",
+      "params": {
+        "paper": "420x297",
+        "cols": 2,
+        "seal": "on",
+        "lang": "zh"
+      },
+      "assertions": [
+        "geometry paperwidth=420mm,paperheight=297mm",
+        "正文级 multicols{2}",
+        "试卷信息（学校/卷名/用途/满分时间）+得分表位于左栏内（不整页通栏）",
+        "选择题选项与题干分段，且 2 栏窄栏内选项排成 AB/CD 两行（multicols{2}）而非挤四列一行排不下",
+        "得分表 tabular* linearwidth + extracolsep fill 铺满所在栏宽",
+        "geometry bottom>=1.4cm，页脚页码完整显示",
+        "答题卡独立 PDF 且固定 A4 纵向 210x297mm",
+        "tex_check.py --paper 420x297 --cols 2 --seal on --lang zh 零 ERROR",
+        "xelatex 编译零错误"
+      ]
+    }
+  ]
+}

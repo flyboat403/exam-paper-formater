@@ -1,0 +1,20 @@
+# 会话粘贴源文件（用户输入，非技能产物）
+.dsh-paste/
+
+# 冒烟测试 / 排版工作产物
+冒烟测试/
+*/output/
+output/
+*.aux
+*.log
+*.out
+*.toc
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+Thumbs.db
+.DS_Store
