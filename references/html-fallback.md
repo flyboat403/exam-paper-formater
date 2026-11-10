@@ -29,15 +29,8 @@
   .paper { position: relative; }
   .cols  { column-count: {COLUMNS}; column-gap: {COLUMNSEP}; }
   /* 1 栏：.cols 不加 column-count */
-  .seal { position: absolute; left: 22mm; top: 0; bottom: 0; width: 0;
-          border-left: 1px dashed #000; }
-  .seal-text { position: absolute; left: 12mm; top: 50%;
-               transform: translateY(-50%) ; writing-mode: vertical-rl;
-               font-size: 9pt; letter-spacing: 4pt; }
-  .seal-info { position: absolute; left: 6mm; top: 20%;
-               writing-mode: vertical-rl; font-size: 9pt; letter-spacing: 2pt; }
-  .seal-circle { position: absolute; left: calc(22mm - 2mm); width: 4mm; height: 4mm;
-                 border: 0.5pt solid #000; border-radius: 50%; }
+  /* 密封线不在这里画：见 §2.1。Chromium 无法把 CSS 元素限定到第 1 页；
+     这里只靠 @page 的 left margin（有密封线 32mm）预留位置。 */
   h1 { font-size: 18pt; text-align: center; margin: 0 0 4pt; }
   .sub { text-align: center; font-size: 10pt; }
   .score { border-collapse: collapse; margin: 6pt auto; font-size: 9pt; }
@@ -53,10 +46,8 @@
 </head>
 <body>
 <div class="paper">
-  <!-- 密封线（seal=on 时保留；第 2 页起删除 .seal-info） -->
-  <div class="seal"></div>
-  <div class="seal-text">密封线内不得答题</div>
-  <div class="seal-info">学校______ 班级______ 姓名______ 学号______</div>
+  <!-- 密封线不在这里画：打印后用 scripts/draw_seal.py 叠加（§2.1）。
+       @page 的 left margin（32mm）已经预留密封线占位。 -->
 
   <h1>{TITLE}</h1>
   <p class="sub">满分：{FULLMARKS}分 &nbsp; 考试时间：{TIME}分钟</p>
@@ -122,13 +113,62 @@ msedge --headless --no-pdf-header-footer --virtual-time-budget=8000 ^
 - **离线环境**：KaTeX CDN 不可达时，把 katex.min.css / katex.min.js /
   auto-render.min.js 下载到本地并改相对路径引用
 
+### 2.1 密封线：打印后叠加（唯一可靠做法）
+
+**不要在 HTML/CSS 里画密封线个人信息。** 两个已实测的失败模式：
+
+1. 把四项写成**一个** `writing-mode: vertical-rl` 的 `.seal-info` div，四项会挤成
+   一条竖线；且 `top: 20%` 相对**整篇文档**而非单页，长卷会落到第 2 页。
+2. “第 2 页起删除 `.seal-info`”无法自动执行：Chromium 没有能选中文档元素的
+   `@page :first`；`position: fixed` 会每页重复，同样不能只限第 1 页。逐页手删
+   不是可重复管线。
+
+改为：HTML 只保留 32mm 左边距，打印后由 `scripts/draw_seal.py` 在 PDF 上叠加：
+
+```bash
+python "$SKILL_ROOT/scripts/draw_seal.py" output/试卷.pdf \
+  -o output/试卷_密封.pdf --paper 420x297 --lang zh
+```
+
+- 虚线 x=22mm 通高；圆点 r=2mm 沿虚线 7%–92%（步长 5%）；提示语
+  x=16.5mm、50% 纸高；个人信息 x=7.5mm、65/50/35/20% 纸高，`rotate=90`，
+  每项后接 **26mm 连续竖线**（不是一串 `＿` 字符）。坐标取
+  `latex-templates.md` 的 TikZ 标称值（x 为 PDF 文本基线锚点）。
+- **默认整条密封线只画第 1 页**：P1 左侧 2 个文本块（提示语 + 个人信息），
+  P2/P3 为 0。这正是避免“每页都印密封线”的关键；不要用 CSS 去补救。
+- 若确实需要 LaTeX 模板的“每页虚线 + 圆点 + 提示语”，加 `--repeat`：
+  此时 P2+ 仍有 1 个提示语块，但个人信息始终只在 P1。
+- `--paper` 必须与试卷方向一致（A3 横 = `420x297`），脚本会校验；
+  `--lang en` 输出 School/Class/Name/ID 与英文提示语。
+- 依赖 PyMuPDF：`pip install pymupdf`；`check_env.py` 的 `pdf_overlay` 字段
+  会报告是否可用。密封线选“无”时跳过本步骤，左边距按 18mm。
+
+核验（P1 有个人信息，P2+ 无）：
+
+```bash
+python - <<'PY'
+import fitz
+d = fitz.open("output/试卷_密封.pdf")
+labels = ("学校", "班级", "姓名", "学号")
+for i, p in enumerate(d, 1):
+    left = [b for b in p.get_text("blocks") if b[2] < 22 * 72 / 25.4]
+    info = [b for b in left if any(k in b[4] for k in labels)]
+    print(i, "left_blocks=", len(left), "info_blocks=", len(info))
+PY
+```
+
+期望（默认）：P1 `left_blocks=2, info_blocks=1`（提示语 + 个人信息），
+P2/P3 `left_blocks=0, info_blocks=0`（无密封线）。
+加 `--repeat` 时 P2/P3 变为 `left_blocks=1, info_blocks=0`（仅提示语）。
+
 ## 3. 质量检查（回退模式等效项）
 
 tex_check.py 只查 .tex；HTML 模式由 agent 逐项自查：
 
 - [ ] `@page size` 与用户选择的纸张/方向一致
 - [ ] 栏数与选择一致（1 栏无 column-count）
-- [ ] 密封线 on/off 与选择一致（第 1 页有个人信息、其余页无）
+- [ ] 密封线由 `draw_seal.py` 叠加（不是 CSS）：默认仅 P1 有整条密封线，
+      P2+ 无；加 `--repeat` 时 P2+ 只有虚线/圆点/提示语，个人信息仍限 P1
 - [ ] 题干「如图」→ 有对应 `<img>`，且图片文件存在
 - [ ] 公式全部 `$…$` / `$$…$$` 包裹（KaTeX 语法与 LaTeX 兼容，
       化学式规则同 formulas.md：`H$_2$O`、`Cu$^{2+}$`）

@@ -8,6 +8,7 @@ Detects which rendering pipeline is available and prints a JSON report:
   - cjk fonts    : CJK fonts found (LaTeX via ctex needs one; Windows
                    auto-selects SimSun/SimHei, Linux needs Noto CJK etc.)
   - pdf preview  : pypdfium2 (preferred) or pdftoppm, for visual verification
+  - pdf overlay  : PyMuPDF, used by draw_seal.py for the HTML fallback seal
   - headless browser : Edge/Chromium, for the HTML fallback pipeline
 
 Usage:
@@ -116,6 +117,23 @@ def find_pdf_preview():
             "install_hint": "pip install pypdfium2  (or apt/choco install poppler)"}
 
 
+def find_pdf_overlay():
+    """PyMuPDF is required to overlay the seal onto HTML-fallback PDFs."""
+    try:
+        import fitz  # PyMuPDF
+        return {"available": True, "backend": "pymupdf",
+                "version": getattr(fitz, "VersionBind", None)}
+    except Exception:
+        try:
+            import pymupdf as fitz  # type: ignore
+            return {"available": True, "backend": "pymupdf",
+                    "version": getattr(fitz, "VersionBind", None)}
+        except Exception as e:  # noqa: BLE001
+            return {"available": False, "backend": None,
+                    "error": str(e),
+                    "install_hint": "pip install pymupdf"}
+
+
 def find_headless_browser():
     names = ["msedge", "msedge.exe", "chrome", "google-chrome", "chromium",
              "chromium-browser", "headless_shell"]
@@ -161,12 +179,15 @@ def main():
         "matplotlib": find_matplotlib(),
         "cjk_system_fonts": find_cjk_system_fonts(),
         "pdf_preview": find_pdf_preview(),
+        "pdf_overlay": find_pdf_overlay(),
         "headless_browser": find_headless_browser(),
     }
     report["pipeline"] = "latex" if report["xelatex"]["available"] else "html-fallback"
     missing = []
     if not report["xelatex"]["available"]:
         missing.append("xelatex")
+        if not report["pdf_overlay"]["available"]:
+            missing.append("pymupdf (HTML seal overlay)")
     if not report["matplotlib"]["available"]:
         missing.append("matplotlib (diagrams)")
     if not report["cjk_system_fonts"]["available"] and sys.platform != "win32":

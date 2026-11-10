@@ -65,7 +65,11 @@ python "$SKILL_ROOT/scripts/check_env.py"
   视觉核验等）前先设 `$env:PYTHONIOENCODING="utf-8"`，否则中文输出乱码
 - `pipeline: latex` → 走主管线（第 2–9 步）
 - `pipeline: html-fallback` → 告知用户本机无 LaTeX，改用
-  `references/html-fallback.md`（结构/规则与主管线同构，用 HTML+KaTeX+Edge 无头打印）
+  `references/html-fallback.md`（结构/规则与主管线同构，用 HTML+KaTeX+Edge 无头打印）。
+  打印后**必须**运行 `scripts/draw_seal.py` 叠加密封线：CSS 无法把密封线限定到
+  第 1 页（`top:20%` 相对整篇文档，逐页手删不可执行）。脚本默认整条密封线只画
+  P1，P2+ 保持干净；`--repeat` 才按 LaTeX 模板每页保留虚线/圆点/提示语（个人信息
+  始终仅 P1）。依赖 PyMuPDF（`pip install pymupdf`）
 - 若用户愿意安装 LaTeX 而环境缺失：Windows 无管理员权限时走
   MiKTeX 便携方案（`miktexsetup_standalone --portable`），或提示
   `choco install miktex`（需管理员）。装完重跑 check_env 确认
@@ -233,7 +237,8 @@ cmd /c "xelatex -interaction=nonstopmode output\试卷.tex > c2.log 2>&1 < NUL"
   ```
 2. 清理 `output/*.aux *.log *.out`（保留 .tex / .pdf / 图片）
 3. 交付说明（简短）：
-   - PDF 路径（试卷 + 答案卷 + 答题卡）
+   - PDF 路径（试卷 + 答案卷 + 答题卡）；HTML 回退交付 `draw_seal.py` 输出的
+     `_密封.pdf`，不要交付未叠加密封线的原始打印件
    - 版式参数摘要（纸张/方向/栏数/密封线/语言）
    - 分值分配说明（如有自动分配）
    - 已知瑕疵（如有，如实列出）
@@ -280,6 +285,12 @@ cmd /c "xelatex -interaction=nonstopmode output\试卷.tex > c2.log 2>&1 < NUL"
        也不换行出 badness 10000 的欠行，多栏卷时选项行溢进栏沟/邻栏。1 栏卷
        只溢到边距，多栏卷直接叠进邻栏 = 废卷。修法：`\linewidth` 比例列宽 +
        选项表自动 `\par` 另起一段（写法见 latex-templates.md §1 / layout.md §5）
+14. **HTML 回退禁止用 CSS 画密封线个人信息**
+    —— `top:20%` 相对整篇文档而非单页，Chromium 没有能选中文档元素的
+       `@page :first`，逐页手删 `.seal-info` 不是可执行管线；长卷会把密封线
+       印到第 2 页、或每页重复。必须打印后用 `scripts/draw_seal.py` 叠加：
+       默认整条密封线仅 P1（P2+ 为 0），`--repeat` 才每页保留虚线/圆点/提示语，
+       个人信息始终仅 P1
 
 ## 参考文件索引
 
@@ -292,7 +303,7 @@ cmd /c "xelatex -interaction=nonstopmode output\试卷.tex > c2.log 2>&1 < NUL"
 | `references/formulas.md` | 公式/化学式/符号规则、转义陷阱 | 第 5 步（理科卷） |
 | `references/figures.md` | 绘图三路径、TikZ 12 项自检、工具函数表 | 第 4/6 步 |
 | `references/subject-notes.md` | 学科特殊版式需求 | 第 5 步 |
-| `references/html-fallback.md` | 无 LaTeX 环境的 HTML 管线 | 第 1 步判定时 |
+| `references/html-fallback.md` | 无 LaTeX 环境的 HTML 管线、`draw_seal.py` 叠加密封线 | 第 1 步判定时 |
 
 > **Do NOT load**：与本卷题型/学科无关的 references 不要读（例如无图纯文字卷
 > 不读 `figures.md`，小学语文卷不读 `formulas.md`）。只加载流程步骤里明确
@@ -305,3 +316,4 @@ cmd /c "xelatex -interaction=nonstopmode output\试卷.tex > c2.log 2>&1 < NUL"
 | `check_env.py` | 环境检测 → 管线建议（第 1 步） |
 | `tex_check.py` | .tex 质量检查，参数化纸张/栏数/密封线/语言（第 7 步） |
 | `diagram_tools.py` | matplotlib 绘图 12 函数（第 6 步） |
+| `draw_seal.py` | HTML 回退 PDF 打印后叠加密封线（默认整条仅 P1，第 1 步） |

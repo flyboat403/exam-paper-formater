@@ -64,6 +64,8 @@
   }%
 }
 % ==== 密封线结束 ====
+% HTML 回退不要用 CSS 复制本块：Chromium 无法把个人信息限定到第 1 页。
+% 打印后用 scripts/draw_seal.py 在 PDF 上叠加（html-fallback.md §2.1）。
 
 \begin{document}
 

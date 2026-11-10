@@ -89,6 +89,11 @@ LaTeX 中写死具体数值（`tex_check.py` 会校验）：
 实现见 latex-templates.md 的 `shipout/background` hook 代码块
 （on/off 由参数控制，整块复制或删除）。
 
+HTML 回退**不要用 CSS 画**：`top:20%` 相对整篇文档而非单页，Chromium 也无法用
+`@page :first` 隐藏文档元素。改为打印后用 `scripts/draw_seal.py` 叠加：
+默认整条密封线仅 P1（P2+ 为 0）；加 `--repeat` 才每页保留虚线/圆点/提示语，
+个人信息始终仅 P1（见 html-fallback.md §2.1）。
+
 ## 5. 试卷头与得分表
 
 试卷头（**第 1 页最前面**，自上而下；1 栏=整页宽，**2/3 栏时位于左栏内、
