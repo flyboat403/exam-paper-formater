@@ -46,7 +46,9 @@ LaTeX 中写死具体数值（`tex_check.py` 会校验）：
 | 2 | `\begin{multicols}{2}` 包住全部题目 | 10mm |
 | 3 | `\begin{multicols}{3}` 包住全部题目 | 8mm |
 
-- multicols 只包**题目主体**；试卷头（标题/满分/时间）、得分表、卷尾结束标记在栏外。
+- multicols 包住**题目主体 + 试卷头 + 得分表**：试卷头（标题/满分/时间）和得分表
+  排在 `\begin{multicols}` 之后、第一道题之前，因此 2/3 栏卷会落在**左栏顶部**，
+  与试题同栏分栏。只有**卷尾结束标记**在 `\end{multicols}` 之后（栏外）。
 - `\columnseprule=0pt`（栏间不画线）。
 - 注意：选择题选项内部会用嵌套的 `multicols{4}`（见 question-format.md），
   与主体栏数无关，tex_check 只校验**第一个**（正文级）multicols。
@@ -71,7 +73,7 @@ LaTeX 中写死具体数值（`tex_check.py` 会校验）：
 | B5 纵 2 栏（无密封线） | ≈71 mm |
 | B5 纵 1 栏（无密封线） | 152 mm |
 | A5 纵 1 栏（无密封线） | 118 mm |
-| 8开 横 2 栏（密封线） | ≈139 mm（370 宽向，短边卷，卷尾禁用 `\vspace*{\fill}`，见 SKILL.md 红线 11） |
+| 8开 横 2 栏（密封线） | ≈158 mm（370 宽向，短边卷，卷尾禁用 `\vspace*{\fill}`，见 SKILL.md 红线 11） |
 
 **图形适配规则**（详见 figures.md）：图宽 ≤ 90% 栏宽；
 栏宽 < 60 mm 时，图形 scale ≤ 0.4 或建议用户减栏。

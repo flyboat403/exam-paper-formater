@@ -7,7 +7,7 @@
 > [elangan1997-cmyk/exam-prompt-skill](https://github.com/elangan1997-cmyk/exam-prompt-skill/)
 > 与 [haitanghuaweimianTom/exam-paper-skill](https://github.com/haitanghuaweimianTom/exam-paper-skill/)，
 > 在其基础上按"试卷排版"范围提取、整合并做了大量自定义扩展（正度8开纸张预设、
-> 答题卡输出、14 条质量红线、双通道视觉核验、ctex 实测陷阱等，详见下文
+> 答题卡输出、15 条质量红线、双通道视觉核验、ctex 实测陷阱等，详见下文
 > 「上游与许可」一节）。完整版权与许可说明见该节。
 
 ## 核心能力
@@ -35,7 +35,7 @@
 
 ```
 .（本仓库根目录 = 技能根目录）
-├── SKILL.md              # 核心原则 + 十步流程 + 14 条质量红线
+├── SKILL.md              # 核心原则 + 十步流程 + 15 条质量红线
 ├── README.md
 ├── evals/
 │   ├── evals.json        # 5 个测试 prompt + 断言
@@ -137,7 +137,7 @@ B5 1 栏化学 / A4 2 栏英文物理 / A3 2 栏计算机模拟卷含答题卡�
 
 在上述基础上，以下内容为本项目原创整合与扩展：
 
-- 十步流程编排与「核心原则」三个 trade-off 框架、质量红线 14 条（每条附 why）
+- 十步流程编排与「核心原则」三个 trade-off 框架、质量红线 15 条（每条附 why）
 - 正度8开（260×370mm）纸张预设、短边卷 `\vspace*{\fill}` 陷阱（实测 44pt Overfull）
 - 答题卡作为第 3 个输出产物（固定 A4 纵向）
 - 输入白名单机制（docx/html/txt/md，非白名单拒绝 + 转换提示，禁止降级解析）

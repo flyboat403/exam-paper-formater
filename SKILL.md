@@ -285,6 +285,14 @@ cmd /c "xelatex -interaction=nonstopmode output\试卷.tex > c2.log 2>&1 < NUL"
        也不换行出 badness 10000 的欠行，多栏卷时选项行溢进栏沟/邻栏。1 栏卷
        只溢到边距，多栏卷直接叠进邻栏 = 废卷。修法：`\linewidth` 比例列宽 +
        选项表自动 `\par` 另起一段（写法见 latex-templates.md §1 / layout.md §5）
+    —— HTML 回退同理：得分表用 `width:100%`（= 栏宽），禁止写死 137mm 之类的
+       固定宽度（A3 纵 2 栏只有 121mm）
+15. **HTML 回退的卷头/得分表禁止写在 `.cols` 外面**
+    —— 写在 `.cols` 外 = 整幅通栏居中，多栏卷标题中心正好压在**两栏缝**上，
+       与 LaTeX 版（卷头在 `\begin{multicols}` 之后、落左栏）不一致；
+       `layout.md` §5 也要求 2/3 栏时卷头与得分表位于左栏内。修法：把
+       `h1` / `.sub` / `<hr>` / `.score` 移进 `<div class="cols">` 首部
+       （见 html-fallback.md §1.1）
 14. **HTML 回退禁止用 CSS 画密封线个人信息**
     —— `top:20%` 相对整篇文档而非单页，Chromium 没有能选中文档元素的
        `@page :first`，逐页手删 `.seal-info` 不是可执行管线；长卷会把密封线

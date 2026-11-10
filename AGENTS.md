@@ -40,6 +40,10 @@ xelatex -interaction=nonstopmode <file.tex>          # run twice (refs + column 
   avoid diluting the critical instructions.
 - Layout is contract: paper size, orientation, column count, seal line, and language in
   the generated file must match the user's confirmed choices exactly.
+- In the HTML fallback the header (`h1` / `.sub` / `<hr>`) and the score table belong
+  **inside** `<div class="cols">` (left column of a 2/3-column paper), matching
+  `latex-templates.md`. Putting them outside makes the title centre on the gutter.
+  The score table uses `width:100%`, never a fixed cm width.
 - HTML fallback seal is **post-processed**, not CSS: print the HTML without seal markup,
   then run `draw_seal.py`. It draws the whole seal on page 1 only by default; `--repeat`
   keeps line/circles/prompt on later pages (personal info always page 1).

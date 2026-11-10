@@ -31,9 +31,13 @@
   /* 1 栏：.cols 不加 column-count */
   /* 密封线不在这里画：见 §2.1。Chromium 无法把 CSS 元素限定到第 1 页；
      这里只靠 @page 的 left margin（有密封线 32mm）预留位置。 */
-  h1 { font-size: 18pt; text-align: center; margin: 0 0 4pt; }
+  /* 卷头/得分表必须写在 .cols 内（多栏卷 = 左栏顶部，见 layout.md §5） */
+  h1 { font-size: 18pt; line-height: 1.25; text-align: center; margin: 0 0 4pt; }
   .sub { text-align: center; font-size: 10pt; }
-  .score { border-collapse: collapse; margin: 6pt auto; font-size: 9pt; }
+  /* 得分表宽度 = 100% 栏宽（禁止固定 cm：A3 纵 2 栏只有 121mm，137mm 会超栏） */
+  .score { width: 100%; max-width: 100%; table-layout: fixed;
+           border-collapse: collapse; margin: 6pt auto; font-size: 9pt;
+           break-inside: avoid; }
   .score td, .score th { border: 0.5pt solid #000; padding: 2pt 6pt; text-align: center; }
   .q { break-inside: avoid; margin: 0 0 2pt; }        /* 单题尽量不跨栏断；题间距收紧 */
   .opts { column-count: 4; column-gap: 4mm; }          /* 选择题四栏 */
@@ -49,17 +53,20 @@
   <!-- 密封线不在这里画：打印后用 scripts/draw_seal.py 叠加（§2.1）。
        @page 的 left margin（32mm）已经预留密封线占位。 -->
 
-  <h1>{TITLE}</h1>
-  <p class="sub">满分：{FULLMARKS}分 &nbsp; 考试时间：{TIME}分钟</p>
-  <hr>
-
-  <!-- 得分表：列数 = 1 + 大题数 + 1（与 LaTeX 版规则相同） -->
-  <table class="score">
-    <tr><th>题号</th><th>一</th><th>二</th><th>三</th><th>总分</th></tr>
-    <tr><td>得分</td><td></td><td></td><td></td><td></td></tr>
-  </table>
-
+  <!-- 卷头 + 得分表必须在 .cols 内：多栏卷时它们落在左栏顶部，
+       与试题同栏（对齐 latex-templates.md §1 / layout.md §5）。
+       写在 .cols 外面会整幅通栏居中、跨过栏沟。 -->
   <div class="cols">
+    <h1>{TITLE}</h1>
+    <p class="sub">满分：{FULLMARKS}分 &nbsp; 考试时间：{TIME}分钟</p>
+    <hr>
+
+    <!-- 得分表：列数 = 1 + 大题数 + 1（与 LaTeX 版规则相同） -->
+    <table class="score">
+      <tr><th>题号</th><th>一</th><th>二</th><th>三</th><th>总分</th></tr>
+      <tr><td>得分</td><td></td><td></td><td></td><td></td></tr>
+    </table>
+
     <section class="q">
       <h3>一、选择题（共 X 题，每题 X 分）</h3>
       <p>1. 题目内容……（&nbsp;&nbsp;）</p>
@@ -86,6 +93,24 @@
 </body>
 </html>
 ```
+
+### 1.1 卷头与得分表必须在 `.cols` 内
+
+多栏卷（2/3 栏）的 `<h1>`、`.sub`、`<hr>`、`<table class="score">` **必须**写在
+`<div class="cols">` 里面，位于第一道题之前：
+
+- 写在 `.cols` 外面 = 整幅通栏居中，标题中心落在**两栏缝**上，与
+  `latex-templates.md` §1（卷头在 `\begin{multicols}` 之后）和 `layout.md` §5
+  （"2/3 栏时位于左栏内、与试题同栏分栏，不整页通栏"）都不一致
+- 移进 `.cols` 后它自然排在**左栏顶部**，与 LaTeX 版同栏分栏效果一致
+- 1 栏卷 `.cols` 不带 `column-count`，写法不变，卷头仍是整页宽
+- 得分表用 `width:100%; max-width:100%; table-layout:fixed`，**禁止写死 cm**
+  （如 137mm）：A3 纵 2 栏（默认配置）只有 121mm、A3 横 3 栏 120mm、A4 纵 3 栏
+  55mm，固定宽必然超栏；100% 栏宽与 LaTeX 的 `\linewidth` 比例列宽等效（红线 13）
+- `h1` 18pt 与 LaTeX `\LARGE`（11pt 档 17.28pt）基本等价。窄栏里长标题**会折行**，
+  LaTeX 同样折行（121mm 栏宽约 19 个汉字/行，158mm 约 24 个汉字/行）——折行不是
+  缺陷，超栏/"落在栏缝上"才是；确实要压行数可降到 15–16pt，但那是审美取舍，
+  不是必修项
 
 ## 2. 打印为 PDF
 
@@ -167,6 +192,8 @@ tex_check.py 只查 .tex；HTML 模式由 agent 逐项自查：
 
 - [ ] `@page size` 与用户选择的纸张/方向一致
 - [ ] 栏数与选择一致（1 栏无 column-count）
+- [ ] 卷头（`h1` / `.sub` / `<hr>`）与得分表在 `.cols` **内**（多栏卷 = 左栏顶部，
+      不整幅通栏、不压栏沟，见 §1.1）；得分表 `width:100%`，没有固定 cm 宽度
 - [ ] 密封线由 `draw_seal.py` 叠加（不是 CSS）：默认仅 P1 有整条密封线，
       P2+ 无；加 `--repeat` 时 P2+ 只有虚线/圆点/提示语，个人信息仍限 P1
 - [ ] 题干「如图」→ 有对应 `<img>`，且图片文件存在
