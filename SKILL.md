@@ -69,7 +69,9 @@ python "$SKILL_ROOT/scripts/check_env.py"
   打印后**必须**运行 `scripts/draw_seal.py` 叠加密封线：CSS 无法把密封线限定到
   第 1 页（`top:20%` 相对整篇文档，逐页手删不可执行）。脚本默认整条密封线只画
   P1，P2+ 保持干净；`--repeat` 才按 LaTeX 模板每页保留虚线/圆点/提示语（个人信息
-  始终仅 P1）。依赖 PyMuPDF（`pip install pymupdf`）
+  始终仅 P1）。依赖 PyMuPDF（`pip install pymupdf`）。**退出码 3 = 前置校验失败**
+  （正文压进 22mm 密封带 / 页面带 `/Rotate` / 各页尺寸不一致 / PDF 已叠加过）：
+  先修版式，不要用 `--force` 掩盖
 - 若用户愿意安装 LaTeX 而环境缺失：Windows 无管理员权限时走
   MiKTeX 便携方案（`miktexsetup_standalone --portable`），或提示
   `choco install miktex`（需管理员）。装完重跑 check_env 确认
@@ -287,18 +289,18 @@ cmd /c "xelatex -interaction=nonstopmode output\试卷.tex > c2.log 2>&1 < NUL"
        选项表自动 `\par` 另起一段（写法见 latex-templates.md §1 / layout.md §5）
     —— HTML 回退同理：得分表用 `width:100%`（= 栏宽），禁止写死 137mm 之类的
        固定宽度（A3 纵 2 栏只有 121mm）
-15. **HTML 回退的卷头/得分表禁止写在 `.cols` 外面**
-    —— 写在 `.cols` 外 = 整幅通栏居中，多栏卷标题中心正好压在**两栏缝**上，
-       与 LaTeX 版（卷头在 `\begin{multicols}` 之后、落左栏）不一致；
-       `layout.md` §5 也要求 2/3 栏时卷头与得分表位于左栏内。修法：把
-       `h1` / `.sub` / `<hr>` / `.score` 移进 `<div class="cols">` 首部
-       （见 html-fallback.md §1.1）
 14. **HTML 回退禁止用 CSS 画密封线个人信息**
     —— `top:20%` 相对整篇文档而非单页，Chromium 没有能选中文档元素的
        `@page :first`，逐页手删 `.seal-info` 不是可执行管线；长卷会把密封线
        印到第 2 页、或每页重复。必须打印后用 `scripts/draw_seal.py` 叠加：
        默认整条密封线仅 P1（P2+ 为 0），`--repeat` 才每页保留虚线/圆点/提示语，
        个人信息始终仅 P1
+15. **HTML 回退的卷头/得分表禁止写在 `.cols` 外面**
+    —— 写在 `.cols` 外 = 整幅通栏居中，多栏卷标题中心正好压在**两栏缝**上，
+       与 LaTeX 版（卷头在 `\begin{multicols}` 之后、落左栏）不一致；
+       `layout.md` §5 也要求 2/3 栏时卷头与得分表位于左栏内。修法：把
+       `h1` / `.sub` / `<hr>` / `.score` 移进 `<div class="cols">` 首部
+       （见 html-fallback.md §1.1）
 
 ## 参考文件索引
 

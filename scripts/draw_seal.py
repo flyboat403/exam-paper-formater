@@ -7,12 +7,24 @@ block to page 1.  ``top: 20%`` is relative to the whole document, and
 seal from HTML therefore either puts the personal-info block on the wrong page
 or requires manual per-page edits.  Draw it onto the finished PDF instead.
 
-Layout uses the same nominal geometry as ``references/latex-templates.md`` §1:
+Layout matches ``references/latex-templates.md`` §1:
   * dashed line at x=22mm, full page height
   * binding circles along that line, radius 2mm
   * "密封线内不得答题" at x=16.5mm, 50% page height
   * 学校/班级/姓名/学号 at x=7.5mm, 65/50/35/20% page height,
     rotated 90°, each followed by a 26mm vertical fill line
+
+X values are the *centre* of the rotated glyph box, exactly like TikZ
+``\node at (x, y)``; the baseline is shifted by half the font's
+(ascender + descender) so the ink lands where LaTeX puts it.
+
+The font is embedded (and subset) on every run: MuPDF's built-in CJK font is
+not embedded by default, and a non-embedded CJK font can print as boxes on a
+print-shop RIP.
+
+Pre-flight guards (exit 3 unless ``--force``): pages with ``/Rotate``, and body
+text that starts inside the 22mm seal band (that means the left margin is not
+the 32mm the seal-on layout requires, so the overlay would stamp over questions).
 
 By default the whole seal is drawn on page 1 only (P2+ stays clean).  Pass
 ``--repeat`` to keep the dashed line, circles, and prompt on every page while
@@ -22,8 +34,8 @@ Usage:
     python scripts/draw_seal.py output/试卷.pdf -o output/试卷_密封.pdf \
         --paper 420x297 --lang zh
 
-Requires PyMuPDF (``pip install pymupdf``).  The left margin must already
-reserve 32mm (seal on) so this overlay never covers question text.
+Requires PyMuPDF (``pip install pymupdf``).  Exit codes: 0 ok, 2 bad input,
+3 pre-flight check failed (re-run with ``--force`` to override).
 """
 
 import argparse
@@ -68,48 +80,80 @@ INFO_LABELS = {
     "zh": ("学校", "班级", "姓名", "学号"),
     "en": ("School", "Class", "Name", "ID"),
 }
-FONT_NAME = {"zh": "china-s", "en": "helv"}
+# lang -> (PyMuPDF built-in font name, PDF resource name)
+FONT_SPEC = {"zh": ("china-s", "SEALZH"), "en": ("helv", "SEALEN")}
+
+_FONT_CACHE = {}
 
 
-def _text_length_mm(text, fontname, fontsize):
-    """Advance width of *text* in millimetres (points -> mm)."""
-    return fitz.get_text_length(text, fontname=fontname, fontsize=fontsize) * 25.4 / 72.0
+def _seal_font(lang):
+    """Return ``(fitz.Font, resource name, font bytes)`` for *lang*.
 
-
-def _draw_rotated_centered(page, text, x_mm, y_center_mm, fontname):
-    """Draw text rotated 90° CCW, centred on *y_center_mm*.
-
-    PyMuPDF's ``rotate=90`` extends text upward from the insertion point, so
-    the insertion point is moved down by half the advance width.
+    The bytes are embedded per page via ``page.insert_font`` and subset once
+    before saving.  Without this the CJK seal text is written as a reference to
+    a non-embedded font: fine on a desktop viewer with a CJK fallback, but a
+    print RIP may draw nothing or boxes.
     """
-    length = _text_length_mm(text, fontname, FONT_SIZE)
-    y_start = (y_center_mm + length / 2.0) * MM
+    if lang not in _FONT_CACHE:
+        base_name, resource = FONT_SPEC[lang]
+        font = fitz.Font(base_name)
+        _FONT_CACHE[lang] = (font, resource, font.buffer)
+    return _FONT_CACHE[lang]
+
+
+def _text_length_mm(text, font, fontsize=FONT_SIZE):
+    """Advance width of *text* in millimetres (points -> mm)."""
+    return font.text_length(text, fontsize=fontsize) * 25.4 / 72.0
+
+
+def _baseline_x_mm(x_center_mm, font, fontsize=FONT_SIZE):
+    """Baseline x that puts the rotated glyph box centre on *x_center_mm*.
+
+    PyMuPDF's ``insert_text`` anchors at the baseline (ink sits left of it when
+    rotated 90°), while TikZ ``\\node at (x, y)`` centres the box.  Compensate by
+    half the font's ascender + descender; measured drift without it is 1.27mm.
+    """
+    offset_pt = (font.ascender + font.descender) / 2.0 * fontsize
+    return x_center_mm + offset_pt * 25.4 / 72.0
+
+
+def _draw_rotated_centered(page, text, x_center_mm, y_center_mm, font, resource):
+    """Draw text rotated 90° CCW, centred on (x_center_mm, y_center_mm).
+
+    PyMuPDF's ``rotate=90`` extends text upward from the insertion point, so the
+    insertion point is moved down by half the advance width.
+    """
+    length = _text_length_mm(text, font)
     page.insert_text(
-        (x_mm * MM, y_start),
+        (
+            _baseline_x_mm(x_center_mm, font) * MM,
+            (y_center_mm + length / 2.0) * MM,
+        ),
         text,
-        fontname=fontname,
+        fontname=resource,
         fontsize=FONT_SIZE,
         rotate=90,
         color=(0, 0, 0),
     )
 
 
-def _draw_info_field(page, label, fraction, fontname):
+def _draw_info_field(page, label, fraction, font, resource):
     """Label + 26mm vertical fill line, the whole group centred on *fraction*.
 
     The label sits at the bottom of the group and the fill line continues
-    upward, matching a rotated ``学校________`` line in LaTeX.  The fill line
-    is a real stroke, not a run of underscore glyphs.
+    upward, matching a rotated ``学校________`` line in LaTeX.  The fill line is
+    a real stroke at the text baseline, not a run of underscore glyphs.
     """
-    label_len = _text_length_mm(label, fontname, FONT_SIZE)
+    label_len = _text_length_mm(label, font)
     total = label_len + FILL_GAP_MM + FILL_LINE_MM
     y_center = (1.0 - fraction) * page.rect.height / MM
     y_bottom = y_center + total / 2.0
+    x_baseline = _baseline_x_mm(INFO_X_MM, font)
 
     page.insert_text(
-        (INFO_X_MM * MM, y_bottom * MM),
+        (x_baseline * MM, y_bottom * MM),
         label,
-        fontname=fontname,
+        fontname=resource,
         fontsize=FONT_SIZE,
         rotate=90,
         color=(0, 0, 0),
@@ -118,8 +162,8 @@ def _draw_info_field(page, label, fraction, fontname):
     line_start = y_bottom - label_len - FILL_GAP_MM
     line_end = line_start - FILL_LINE_MM
     page.draw_line(
-        fitz.Point(INFO_X_MM * MM, line_start * MM),
-        fitz.Point(INFO_X_MM * MM, line_end * MM),
+        fitz.Point(x_baseline * MM, line_start * MM),
+        fitz.Point(x_baseline * MM, line_end * MM),
         color=(0, 0, 0),
         width=0.5,
     )
@@ -135,7 +179,8 @@ def draw_seal(page, page_number, lang="zh", repeat=False):
     if page_number != 0 and not repeat:
         return
 
-    fontname = FONT_NAME[lang]
+    font, resource, font_bytes = _seal_font(lang)
+    page.insert_font(fontname=resource, fontbuffer=font_bytes)
     height_mm = page.rect.height / MM
 
     # Dashed line, full page height.
@@ -158,13 +203,13 @@ def draw_seal(page, page_number, lang="zh", repeat=False):
 
     # "密封线内不得答题" / English equivalent.
     _draw_rotated_centered(
-        page, SEAL_TEXT[lang], PROMPT_X_MM, PROMPT_FRACTION * height_mm, fontname
+        page, SEAL_TEXT[lang], PROMPT_X_MM, PROMPT_FRACTION * height_mm, font, resource
     )
 
     # Personal info only on page 1.
     if page_number == 0:
         for label, fraction in zip(INFO_LABELS[lang], INFO_FRACTIONS):
-            _draw_info_field(page, label, fraction, fontname)
+            _draw_info_field(page, label, fraction, font, resource)
 
 
 def _parse_paper(value):
@@ -184,6 +229,60 @@ def _check_paper(doc, paper):
         )
 
 
+def _preflight(doc, paper):
+    """Collect layout problems that would make the overlay unusable.
+
+    Two failure modes are silent and produce a scrap paper:
+
+    * body text inside the 22mm seal band -> the source was printed with the
+      seal-off 18mm left margin, so the dashed line would run through questions;
+    * ``/Rotate`` pages -> page.rect is rotated but drawing uses unrotated
+      coordinates, so the strip lands in the wrong place.
+
+    A mixed page size is reported too: ``--paper`` only vouches for one size.
+    """
+    problems = []
+    sizes = sorted({(round(p.rect.width / MM), round(p.rect.height / MM))
+                    for p in doc})
+    if paper and len(sizes) > 1:
+        problems.append(f"mixed page sizes {sizes}; --paper expects one size")
+
+    band_mm = SEAL_X_MM - 1.0
+    marks = {SEAL_TEXT["zh"], SEAL_TEXT["en"], *INFO_LABELS["zh"], *INFO_LABELS["en"]}
+
+    def _is_seal_block(block):
+        """True when every line is a seal prompt / info label (already stamped)."""
+        lines = [ln.strip() for ln in block[4].splitlines() if ln.strip()]
+        return bool(lines) and all(ln in marks for ln in lines)
+
+    for page_number, page in enumerate(doc, 1):
+        if page.rotation:
+            problems.append(
+                f"page {page_number}: /Rotate {page.rotation}; seal coordinates "
+                f"assume rotation 0"
+            )
+        hits = [b for b in page.get_text("blocks")
+                if b[0] < band_mm * MM and b[4].strip()]
+        if not hits:
+            continue
+        already = [b for b in hits if _is_seal_block(b)]
+        body = [b for b in hits if b not in already]
+        if already and not body:
+            problems.append(
+                f"page {page_number}: already carries a seal overlay "
+                f"(re-running would double-stamp it)"
+            )
+            continue
+        if body:
+            sample = body[0][4].strip().splitlines()[0][:20]
+            problems.append(
+                f"page {page_number}: {len(body)} text block(s) start inside the "
+                f"left {band_mm:.0f}mm seal band (left margin must be 32mm with "
+                f"seal); e.g. {sample!r}"
+            )
+    return problems
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("input", help="source PDF (printed from the HTML fallback)")
@@ -195,6 +294,9 @@ def main():
     ap.add_argument("--repeat", action="store_true",
                     help="keep line/circles/prompt on every page "
                          "(LaTeX default); personal info stays on page 1")
+    ap.add_argument("--force", action="store_true",
+                    help="draw anyway when pre-flight checks fail "
+                         "(rotated pages, text in the seal band)")
     args = ap.parse_args()
 
     if not os.path.exists(args.input):
@@ -214,22 +316,46 @@ def main():
     if args.paper:
         _check_paper(doc, args.paper)
 
+    problems = _preflight(doc, args.paper)
+    if problems:
+        stream = sys.stderr
+        if args.force:
+            print("warning: pre-flight problems ignored (--force):", file=stream)
+            for problem in problems:
+                print(f"  - {problem}", file=stream)
+        else:
+            print("pre-flight check failed:", file=stream)
+            for problem in problems:
+                print(f"  - {problem}", file=stream)
+            print("fix the layout, or re-run with --force to overlay anyway",
+                  file=stream)
+            return 3
+
     for page_number, page in enumerate(doc):
         draw_seal(page, page_number, args.lang, repeat=args.repeat)
+
+    # Subset the embedded seal font; otherwise every page carries the full
+    # ~3.5MB CJK font.
+    if hasattr(doc, "subset_fonts"):
+        try:
+            doc.subset_fonts()
+        except Exception as exc:  # noqa: BLE001 - never fail the delivery on this
+            print(f"warning: font subsetting failed ({exc}); output will be large",
+                  file=sys.stderr)
 
     if same_file:
         # Save to a sibling temp file, then replace atomically.
         fd, tmp = tempfile.mkstemp(suffix=".pdf", dir=os.path.dirname(output) or ".")
         os.close(fd)
         try:
-            doc.save(tmp, garbage=3, deflate=True)
+            doc.save(tmp, garbage=4, deflate=True)
             doc.close()
             os.replace(tmp, output)
         finally:
             if os.path.exists(tmp):
                 os.unlink(tmp)
     else:
-        doc.save(output, garbage=3, deflate=True)
+        doc.save(output, garbage=4, deflate=True)
         doc.close()
 
     print(f"sealed PDF: {output}")

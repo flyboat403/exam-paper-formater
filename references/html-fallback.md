@@ -61,8 +61,15 @@
     <p class="sub">满分：{FULLMARKS}分 &nbsp; 考试时间：{TIME}分钟</p>
     <hr>
 
-    <!-- 得分表：列数 = 1 + 大题数 + 1（与 LaTeX 版规则相同） -->
+    <!-- 得分表：列数 = 1 + 大题数 + 1（与 LaTeX 版规则相同）
+         列宽比例 = 12% / 均分 76% / 12%，对应 LaTeX 的 0.12 : 0.70n : 0.12；
+         大题数 n 变化时，中间每列改成 76%/n（示例为 n=3 → 25.33%） -->
     <table class="score">
+      <colgroup>
+        <col style="width:12%">                      <!-- 题号 -->
+        <col style="width:25.33%"><col style="width:25.33%"><col style="width:25.33%">
+        <col style="width:12%">                      <!-- 总分 -->
+      </colgroup>
       <tr><th>题号</th><th>一</th><th>二</th><th>三</th><th>总分</th></tr>
       <tr><td>得分</td><td></td><td></td><td></td><td></td></tr>
     </table>
@@ -107,6 +114,9 @@
 - 得分表用 `width:100%; max-width:100%; table-layout:fixed`，**禁止写死 cm**
   （如 137mm）：A3 纵 2 栏（默认配置）只有 121mm、A3 横 3 栏 120mm、A4 纵 3 栏
   55mm，固定宽必然超栏；100% 栏宽与 LaTeX 的 `\linewidth` 比例列宽等效（红线 13）
+- 列宽用 `<colgroup>` 按比例分配（题号 12% / 各大题均分 76% / 总分 12%），与
+  LaTeX 的 `0.12 : 0.70n : 0.12` 一致；不加 `<colgroup>` 时 `table-layout:fixed`
+  会让各列等宽，题号列和总分列会显得过宽
 - `h1` 18pt 与 LaTeX `\LARGE`（11pt 档 17.28pt）基本等价。窄栏里长标题**会折行**，
   LaTeX 同样折行（121mm 栏宽约 19 个汉字/行，158mm 约 24 个汉字/行）——折行不是
   缺陷，超栏/"落在栏缝上"才是；确实要压行数可降到 15–16pt，但那是审美取舍，
@@ -157,14 +167,21 @@ python "$SKILL_ROOT/scripts/draw_seal.py" output/试卷.pdf \
 
 - 虚线 x=22mm 通高；圆点 r=2mm 沿虚线 7%–92%（步长 5%）；提示语
   x=16.5mm、50% 纸高；个人信息 x=7.5mm、65/50/35/20% 纸高，`rotate=90`，
-  每项后接 **26mm 连续竖线**（不是一串 `＿` 字符）。坐标取
-  `latex-templates.md` 的 TikZ 标称值（x 为 PDF 文本基线锚点）。
+  每项后接 **26mm 连续竖线**（不是一串 `＿` 字符）。x 是**字身中心**，与 TikZ
+  `\node at (x, y)` 一致（脚本已按字体 ascender/descender 补偿基线偏移）。
+- **字体自动嵌入并子集化**：MuPDF 内置 CJK 字体默认不嵌入，印刷厂 RIP 上可能
+  变成方框或空白（密封线消失 = 废卷）。脚本每页 `insert_font` + 保存前
+  `subset_fonts()`，3 页 A4 约 11 KB。
 - **默认整条密封线只画第 1 页**：P1 左侧 2 个文本块（提示语 + 个人信息），
   P2/P3 为 0。这正是避免“每页都印密封线”的关键；不要用 CSS 去补救。
 - 若确实需要 LaTeX 模板的“每页虚线 + 圆点 + 提示语”，加 `--repeat`：
   此时 P2+ 仍有 1 个提示语块，但个人信息始终只在 P1。
 - `--paper` 必须与试卷方向一致（A3 横 = `420x297`），脚本会校验；
   `--lang en` 输出 School/Class/Name/ID 与英文提示语。
+- **前置校验（退出码 3）**：脚本会先扫一遍，发现以下情况直接拒绝落笔——正文
+  文本进入左侧 22mm 密封带（说明打印时左边距是 18mm 而非 32mm，虚线会压过题干）、
+  页面带 `/Rotate`（坐标会错位）、`--paper` 下各页尺寸不一致、或该 PDF 已经叠加
+  过一次密封线（会重影）。确认无误再用 `--force` 跳过。
 - 依赖 PyMuPDF：`pip install pymupdf`；`check_env.py` 的 `pdf_overlay` 字段
   会报告是否可用。密封线选“无”时跳过本步骤，左边距按 18mm。
 

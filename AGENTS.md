@@ -53,6 +53,9 @@ xelatex -interaction=nonstopmode <file.tex>          # run twice (refs + column 
 - `scripts/draw_seal.py` overlays the HTML-fallback seal with PyMuPDF. Verify with
   `page.get_text("blocks")`: by default page 1 has 2 left-side blocks (prompt + info)
   and later pages have 0. With `--repeat`, later pages have the prompt only.
+  It embeds + subsets the seal font (a non-embedded CJK font prints as boxes on some
+  RIPs) and runs a pre-flight check: text inside the 22mm band, `/Rotate` pages,
+  mixed page sizes, or an already-sealed PDF exit 3 unless `--force` is passed.
 - Generated `.tex`, images, and PDFs belong in the current project's `output/`
   directory. Use the Chinese filenames the examples use.
 

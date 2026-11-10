@@ -91,6 +91,10 @@ LaTeX 中写死具体数值（`tex_check.py` 会校验）：
 实现见 latex-templates.md 的 `shipout/background` hook 代码块
 （on/off 由参数控制，整块复制或删除）。
 
+**两条管线的默认行为不同，交付说明里要写清**：LaTeX 模板每页都画虚线 + 圆点 +
+提示语（个人信息仅第 1 页）；HTML 回退用 `draw_seal.py` 时**默认整条密封线只有
+第 1 页**，要每页重复必须显式加 `--repeat`。
+
 HTML 回退**不要用 CSS 画**：`top:20%` 相对整篇文档而非单页，Chromium 也无法用
 `@page :first` 隐藏文档元素。改为打印后用 `scripts/draw_seal.py` 叠加：
 默认整条密封线仅 P1（P2+ 为 0）；加 `--repeat` 才每页保留虚线/圆点/提示语，
